@@ -1,0 +1,6 @@
+global coletando = False
+
+join coletor_thread
+
+textmsg("Coleta finalizada.")
+textmsg("Total de amostras: ", amostras)

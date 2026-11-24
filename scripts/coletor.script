@@ -1,0 +1,26 @@
+global coletando = True
+global amostras = 0
+
+thread coletor():
+  while coletando:
+    global amostras = amostras + 1
+    tempo = get_steptime()
+
+    juntas_reais = get_actual_joint_positions()
+    juntas_alvo = get_target_joint_positions()
+
+    tcp_real = get_actual_tcp_pose()
+    tcp_alvo = get_target_tcp_pose()
+
+    textmsg("Amostra: ", amostras)
+    textmsg("Tempo: ", tempo)
+    textmsg("Juntas reais: ", juntas_reais)
+    textmsg("Juntas alvo: ", juntas_alvo)
+    textmsg("TCP real: ", tcp_real)
+    textmsg("TCP alvo: ", tcp_alvo)
+
+    sleep(0.1)
+  end
+end
+
+global coletor_thread = run coletor()
