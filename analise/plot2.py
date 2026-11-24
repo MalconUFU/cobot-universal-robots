@@ -100,7 +100,7 @@ def plot(df, title):
     unit, k = pick_unit(axis_error_m)
     for i, name in enumerate(AXES):
         ax.plot(t, axis_error_m[:, i] * k, color=AXIS_COLORS[name], linewidth=1.2, label=name)
-    ax.set_ylabel(f"Error per axis ({unit})")
+    ax.set_ylabel(f"Error axis ({unit})")
     ax.ticklabel_format(axis="y", useOffset=False, style="plain")
     ax.legend(loc="lower right", bbox_to_anchor=(1, 1.0), frameon=False, fontsize=9, ncols=3)
     style(ax)
@@ -110,7 +110,7 @@ def plot(df, title):
     ax = fig.add_subplot(grid[4, 0], sharex=time_axes[0])
     for i, name in enumerate(AXES):
         ax.plot(t, rel_error_pct[:, i], color=AXIS_COLORS[name], linewidth=1.2, label=name)
-    ax.set_ylabel("Relative error per axis (%)")
+    ax.set_ylabel("Relative error axis (%)")
     ax.ticklabel_format(axis="y", useOffset=False)
     ax.legend(loc="lower right", bbox_to_anchor=(1, 1.0), frameon=False, fontsize=9, ncols=3)
     style(ax)
