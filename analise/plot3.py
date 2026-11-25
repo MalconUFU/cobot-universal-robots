@@ -53,6 +53,19 @@ ERROR_COLORS = {"along": "#d1495b", "cross": "#1c7ed6", "total": INK_MUTED}
 PHASES = {1: ("acceleration", "#fff3bf"), 2: ("cruise", "#ebfbee"),
           3: ("deceleration", "#ffe3e3"), 4: ("settling / rest", "#edf2ff")}
 
+# Short axis labels; their meaning is written in the glossary at the bottom of the figure.
+GLOSSARY = [
+    (r"$v$", "TCP speed"),
+    (r"$e_{xyz}$", "actual − target, per base-frame axis"),
+    (r"$e_\parallel$", "error along the path (< 0 behind the target, > 0 past it)"),
+    (r"$e_\perp$", "error across the path (deviation from the straight path)"),
+    (r"$|e|$", "total TCP position error"),
+    (r"$e_{rot}$", "angle between target and actual TCP orientation"),
+    (r"$e_q$", "actual − target, per joint"),
+    (r"$e_{q \to TCP}$", "TCP position error caused by each joint"),
+    (r"$s$", "distance travelled along the target path"),
+]
+
 UNITS = [("m", 1.0), ("mm", 1e3), ("µm", 1e6)]
 ANGLE_UNITS = [("°", np.degrees(1.0)), ("m°", np.degrees(1.0) * 1e3)]
 
@@ -314,8 +327,9 @@ def plot(an, title):
     has_contrib = an["contrib"] is not None
     n_rows = 9 if has_contrib else 8
 
-    fig = plt.figure(figsize=(15, 2.3 * n_rows), constrained_layout=True)
-    grid = fig.add_gridspec(n_rows, 2, width_ratios=[1.6, 1])
+    fig = plt.figure(figsize=(15, 2.3 * n_rows + 1.2), constrained_layout=True)
+    grid = fig.add_gridspec(n_rows + 1, 2, width_ratios=[1.6, 1],
+                            height_ratios=[1] * n_rows + [0.5])
     fig.suptitle(title, color=INK, fontsize=12, x=0.01, ha="left")
     axes = []
 
@@ -340,7 +354,7 @@ def plot(an, title):
     ax = new_axis(3)
     ax.plot(t, an["v_a"], color=ACTUAL_COLOR, linewidth=2)
     ax.plot(t, an["v_t"], color=TARGET_COLOR, linewidth=1.5, linestyle="--")
-    ax.set_ylabel("TCP speed (m/s)")
+    ax.set_ylabel(r"$v$ (m/s)")
     ax.legend(handles=[Patch(color=c, label=l) for l, c in PHASES.values()],
               loc="lower right", bbox_to_anchor=(1, 1.0), frameon=False, fontsize=9, ncols=4)
 
@@ -349,18 +363,17 @@ def plot(an, title):
     unit, k = pick_unit(an["e"])
     for i, name in enumerate(AXES):
         ax.plot(t, an["e"][:, i] * k, color=AXIS_COLORS[name], linewidth=1.2, label=name)
-    ax.set_ylabel(f"Error per axis ({unit})")
+    ax.set_ylabel(rf"$e_{{xyz}}$ ({unit})")
     ax.ticklabel_format(axis="y", useOffset=False, style="plain")
     ax.legend(loc="lower right", bbox_to_anchor=(1, 1.0), frameon=False, fontsize=9, ncols=3)
 
     # along-path / cross-path / total
     ax = new_axis(5)
     unit, k = pick_unit(np.concatenate([an["along"], an["total"]]))
-    ax.plot(t, an["total"] * k, color=ERROR_COLORS["total"], linewidth=1.0, label="total")
-    ax.plot(t, an["along"] * k, color=ERROR_COLORS["along"], linewidth=1.4,
-            label="along path (<0 behind, >0 past)")
-    ax.plot(t, an["cross"] * k, color=ERROR_COLORS["cross"], linewidth=1.4, label="cross path")
-    ax.set_ylabel(f"Position error ({unit})")
+    ax.plot(t, an["total"] * k, color=ERROR_COLORS["total"], linewidth=1.0, label=r"$|e|$")
+    ax.plot(t, an["along"] * k, color=ERROR_COLORS["along"], linewidth=1.4, label=r"$e_\parallel$")
+    ax.plot(t, an["cross"] * k, color=ERROR_COLORS["cross"], linewidth=1.4, label=r"$e_\perp$")
+    ax.set_ylabel(f"error ({unit})")
     ax.ticklabel_format(axis="y", useOffset=False, style="plain")
     ax.legend(loc="lower right", bbox_to_anchor=(1, 1.0), frameon=False, fontsize=9, ncols=3)
     if np.isfinite(m["atraso_cruzeiro_ms"]):
@@ -371,7 +384,7 @@ def plot(an, title):
     ax = new_axis(6)
     unit, k = pick_unit(an["orient"], ANGLE_UNITS)
     ax.plot(t, an["orient"] * k, color=INK_MUTED, linewidth=1.4)
-    ax.set_ylabel(f"Orientation error ({unit})")
+    ax.set_ylabel(rf"$e_{{rot}}$ ({unit})")
     ax.ticklabel_format(axis="y", useOffset=False, style="plain")
 
     # per-joint error
@@ -379,7 +392,7 @@ def plot(an, title):
     unit, k = pick_unit(an["joint_err"], ANGLE_UNITS)
     for j, name in enumerate(JOINTS):
         ax.plot(t, an["joint_err"][:, j] * k, color=JOINT_COLORS[j], linewidth=1.2, label=name)
-    ax.set_ylabel(f"Error per joint ({unit})")
+    ax.set_ylabel(rf"$e_q$ ({unit})")
     ax.ticklabel_format(axis="y", useOffset=False, style="plain")
     ax.legend(loc="lower right", bbox_to_anchor=(1, 1.0), frameon=False, fontsize=9, ncols=6)
 
@@ -390,10 +403,10 @@ def plot(an, title):
         unit, k = pick_unit(norms)
         for j, name in enumerate(JOINTS):
             ax.plot(t, norms[:, j] * k, color=JOINT_COLORS[j], linewidth=1.2, label=name)
-        ax.set_ylabel(f"Joint → TCP error ({unit})")
+        ax.set_ylabel(rf"$e_{{q \to TCP}}$ ({unit})")
         ax.ticklabel_format(axis="y", useOffset=False, style="plain")
 
-    axes[-1].set_xlabel("Time since recording started (s)")
+    axes[-1].set_xlabel("time since recording started (s)")
     for ax in axes[:-1]:
         ax.tick_params(labelbottom=False)
 
@@ -420,15 +433,24 @@ def plot(an, title):
 
     # right, bottom: cross-path error vs distance along the path. If wiggles repeat at the
     # same distance in every repetition/speed, their origin is mechanical (position-dependent).
-    ax = fig.add_subplot(grid[split:, 1])
+    ax = fig.add_subplot(grid[split:n_rows, 1])
     unit, k = pick_unit(an["cross"])
     moving = (phase == 1) | (phase == 2) | (phase == 3)
     ax.plot(an["s_path"][moving] * 1e3, an["cross"][moving] * k, ".", color=ERROR_COLORS["cross"],
             markersize=3)
-    ax.set_xlabel("Distance along target path (mm)")
-    ax.set_ylabel(f"Cross-path error ({unit})")
-    ax.set_title("Deviation vs position (moving samples)", color=INK, fontsize=11)
+    ax.set_xlabel(r"$s$ (mm)")
+    ax.set_ylabel(rf"$e_\perp$ ({unit})")
+    ax.set_title(r"$e_\perp$ vs $s$ (moving samples)", color=INK, fontsize=11)
     style(ax)
+
+    # bottom: glossary of the short labels, in three columns
+    ax = fig.add_subplot(grid[n_rows, :])
+    ax.axis("off")
+    per_col = -(-len(GLOSSARY) // 3)
+    for c in range(3):
+        lines = [f"{sym}: {text}" for sym, text in GLOSSARY[c * per_col:(c + 1) * per_col]]
+        ax.text(c / 3, 1.0, "\n".join(lines), transform=ax.transAxes, va="top", ha="left",
+                fontsize=9, color=INK, linespacing=1.6)
     return fig
 
 
